@@ -35,19 +35,8 @@ app.use(express.static("public"));
 // ------------------------
 // 画像アップロードの設定
 // ------------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "public/uploads/");
-  },
-  filename: (req, file, cb) => {
-    // ユーザー名 + 元の拡張子 で保存(常に上書きされる)
-    const ext = file.originalname.split(".").pop();
-    cb(null, `${req.session.username}.${ext}`);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(), // ファイルに保存せず、メモリ上で扱う
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MBまで
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
@@ -66,12 +55,15 @@ app.post(
   upload.single("avatar"),
   async (req, res) => {
     try {
-      const avatarPath = `/uploads/${req.file.filename}`;
+      // 画像データをBase64の文字列に変換して、そのまま保存する
+      const base64 = req.file.buffer.toString("base64");
+      const avatarData = `data:${req.file.mimetype};base64,${base64}`;
+
       await User.findOneAndUpdate(
         { username: req.session.username },
-        { avatar: avatarPath },
+        { avatar: avatarData },
       );
-      res.json({ avatar: avatarPath });
+      res.json({ avatar: avatarData });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "アップロードに失敗しました" });
