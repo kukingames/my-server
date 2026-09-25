@@ -19,7 +19,6 @@
 
     <img id="avatar" src="" alt="プロフィール画像" /><br /><br />
     <input type="file" id="avatarInput" accept="image/*" />
-    <button id="uploadBtn">画像を変更</button>
 
     <p><a href="/memo.html">メモを書く</a></p>
     <a href="/logout">ログアウト</a>
@@ -44,8 +43,8 @@
       }
 
       document
-        .getElementById("uploadBtn")
-        .addEventListener("click", async () => {
+        .getElementById("avatarInput")
+        .addEventListener("change", async () => {
           const fileInput = document.getElementById("avatarInput");
           if (!fileInput.files[0]) return;
 
