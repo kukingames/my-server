@@ -132,9 +132,21 @@ app.get("/api/me", requireLogin, async (req, res) => {
   const user = await User.findOne({ username: req.session.username });
   res.json({ username: req.session.username, avatar: user.avatar });
 });
+
 // ------------------------
 // メモ一覧取得(自分のメモだけ)
 // ------------------------
+app.get("/api/memos", requireLogin, async (req, res) => {
+  try {
+    const memos = await Memo.find({ username: req.session.username }).sort({
+      createdAt: -1,
+    });
+    res.json(memos);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "メモの取得に失敗しました" });
+  }
+});
 // ------------------------
 // 公開メモ一覧取得(誰でも見られる、ログイン不要)
 // ------------------------
