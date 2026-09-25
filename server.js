@@ -18,6 +18,7 @@ mongoose
   .catch((err) => console.error("MongoDB接続エラー:", err));
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 app.use(
   session({
