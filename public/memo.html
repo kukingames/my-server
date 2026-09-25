@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>メモ</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 500px;
+        margin: 40px auto;
+      }
+      .memo-item {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button.delete {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>マイメモ</h1>
+    <p><a href="/mypage.html">マイページに戻る</a></p>
+
+    <textarea id="content" rows="3" placeholder="メモを書く..."></textarea
+    ><br />
+    <button id="submit">投稿する</button>
+
+    <hr />
+    <div id="list"></div>
+
+    <script>
+      async function loadMemos() {
+        const res = await fetch("/api/memos");
+        if (!res.ok) {
+          window.location.href = "/login.html";
+          return;
+        }
+        const memos = await res.json();
+
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+        memos.forEach((memo) => {
+          const div = document.createElement("div");
+          div.className = "memo-item";
+          div.innerHTML = `
+          <span>${escapeHtml(memo.content)}</span>
+          <button class="delete" data-id="${memo._id}">削除</button>
+        `;
+          list.appendChild(div);
+        });
+
+        // 削除ボタンのイベント
+        document.querySelectorAll(".delete").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            await fetch(`/api/memos/${id}`, { method: "DELETE" });
+            loadMemos();
+          });
+        });
+      }
+
+      // HTMLとして解釈されないようにエスケープ(安全対策)
+      function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      document.getElementById("submit").addEventListener("click", async () => {
+        const content = document.getElementById("content").value;
+        if (!content.trim()) return;
+
+        await fetch("/api/memos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        });
+
+        document.getElementById("content").value = "";
+        loadMemos();
+      });
+
+      loadMemos();
+    </script>
+  </body>
+</html>
