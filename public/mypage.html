@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+  <script>
+    fetch("/api/me")
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data) => {
+        document.getElementById("welcome").textContent =
+          `ようこそ、${data.username}さん!`;
+      })
+      .catch(() => {
+        window.location.href = "/login.html";
+      });
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <title>マイページ</title>
+  </head>
+  <body>
+    <h1>マイページ</h1>
+    <p id="welcome">読み込み中...</p>
+    <a href="/logout">ログアウト</a>
+  </body>
+</html>
