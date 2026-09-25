@@ -135,15 +135,18 @@ app.get("/api/me", requireLogin, async (req, res) => {
 // ------------------------
 // メモ一覧取得(自分のメモだけ)
 // ------------------------
-app.get("/api/memos", requireLogin, async (req, res) => {
+// ------------------------
+// 公開メモ一覧取得(誰でも見られる、ログイン不要)
+// ------------------------
+app.get("/api/public-memos", async (req, res) => {
   try {
-    const memos = await Memo.find({ username: req.session.username }).sort({
-      createdAt: -1,
-    });
+    const memos = await Memo.find({ isPublic: true })
+      .sort({ createdAt: -1 })
+      .limit(50);
     res.json(memos);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "メモの取得に失敗しました" });
+    res.status(500).json({ error: "取得に失敗しました" });
   }
 });
 
@@ -151,14 +154,18 @@ app.get("/api/memos", requireLogin, async (req, res) => {
 // メモ投稿
 // ------------------------
 app.post("/api/memos", requireLogin, async (req, res) => {
-  const { content } = req.body;
+  const { content, isPublic } = req.body;
 
   if (!content || content.trim() === "") {
     return res.status(400).json({ error: "内容を入力してください" });
   }
 
   try {
-    const memo = new Memo({ username: req.session.username, content });
+    const memo = new Memo({
+      username: req.session.username,
+      content,
+      isPublic: !!isPublic,
+    });
     await memo.save();
     res.json(memo);
   } catch (err) {
@@ -188,6 +195,36 @@ app.delete("/api/memos/:id", requireLogin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "メモの削除に失敗しました" });
+  }
+});
+
+// ------------------------
+// メモ編集
+// ------------------------
+app.put("/api/memos/:id", requireLogin, async (req, res) => {
+  const { content } = req.body;
+
+  if (!content || content.trim() === "") {
+    return res.status(400).json({ error: "内容を入力してください" });
+  }
+
+  try {
+    const memo = await Memo.findById(req.params.id);
+
+    if (!memo) {
+      return res.status(404).json({ error: "メモが見つかりません" });
+    }
+
+    if (memo.username !== req.session.username) {
+      return res.status(403).json({ error: "編集する権限がありません" });
+    }
+
+    memo.content = content;
+    await memo.save();
+    res.json(memo);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "メモの更新に失敗しました" });
   }
 });
 

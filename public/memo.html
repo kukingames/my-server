@@ -3,45 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <title>メモ</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        max-width: 500px;
-        margin: 40px auto;
-      }
-      .memo-item {
-        border: 1px solid #ccc;
-        padding: 10px;
-        margin-bottom: 8px;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      textarea {
-        width: 100%;
-        box-sizing: border-box;
-      }
-      button.delete {
-        background: #e74c3c;
-        color: white;
-        border: none;
-        padding: 4px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-    </style>
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <h1>マイメモ</h1>
-    <p><a href="/mypage.html">マイページに戻る</a></p>
+    <div class="container">
+      <h1>マイメモ</h1>
+      <nav>
+        <a href="/mypage.html">マイページに戻る</a>
+        <a href="/board.html">みんなの掲示板を見る</a>
+      </nav>
 
-    <textarea id="content" rows="3" placeholder="メモを書く..."></textarea
-    ><br />
-    <button id="submit">投稿する</button>
+      <form onsubmit="return false;">
+        <label
+          >内容
+          <textarea
+            id="content"
+            rows="3"
+            placeholder="メモを書く..."
+          ></textarea>
+        </label>
+        <div class="checkbox-row">
+          <input type="checkbox" id="isPublic" />
+          <label for="isPublic" style="margin: 0"
+            >みんなの掲示板に公開する</label
+          >
+        </div>
+        <button id="submit">投稿する</button>
+      </form>
 
-    <hr />
-    <div id="list"></div>
+      <div id="list"></div>
+    </div>
 
     <script>
       async function loadMemos() {
@@ -54,27 +45,49 @@
 
         const list = document.getElementById("list");
         list.innerHTML = "";
+
+        if (memos.length === 0) {
+          list.innerHTML = '<p class="empty">まだメモがありません。</p>';
+          return;
+        }
+
         memos.forEach((memo) => {
           const div = document.createElement("div");
           div.className = "memo-item";
           div.innerHTML = `
-          <span>${escapeHtml(memo.content)}</span>
-          <button class="delete" data-id="${memo._id}">削除</button>
+          <div class="memo-content">${escapeHtml(memo.content)}</div>
+          <div class="memo-meta">${memo.isPublic ? "🌐 公開中" : "🔒 非公開"}</div>
+          <div class="memo-actions">
+            <button class="edit" data-id="${memo._id}">編集</button>
+            <button class="delete" data-id="${memo._id}">削除</button>
+          </div>
         `;
           list.appendChild(div);
         });
 
-        // 削除ボタンのイベント
         document.querySelectorAll(".delete").forEach((btn) => {
           btn.addEventListener("click", async () => {
-            const id = btn.dataset.id;
-            await fetch(`/api/memos/${id}`, { method: "DELETE" });
+            if (!confirm("本当に削除しますか？")) return;
+            await fetch(`/api/memos/${btn.dataset.id}`, { method: "DELETE" });
+            loadMemos();
+          });
+        });
+
+        document.querySelectorAll(".edit").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const newContent = prompt("新しい内容を入力してください:");
+            if (newContent === null || newContent.trim() === "") return;
+
+            await fetch(`/api/memos/${btn.dataset.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: newContent }),
+            });
             loadMemos();
           });
         });
       }
 
-      // HTMLとして解釈されないようにエスケープ(安全対策)
       function escapeHtml(str) {
         const div = document.createElement("div");
         div.textContent = str;
@@ -83,15 +96,17 @@
 
       document.getElementById("submit").addEventListener("click", async () => {
         const content = document.getElementById("content").value;
+        const isPublic = document.getElementById("isPublic").checked;
         if (!content.trim()) return;
 
         await fetch("/api/memos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, isPublic }),
         });
 
         document.getElementById("content").value = "";
+        document.getElementById("isPublic").checked = false;
         loadMemos();
       });
 
